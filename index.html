@@ -795,18 +795,7 @@
           <circle cx="21.3" cy="21.3" r="2.1" fill="#fff" opacity="0.4"/>
         </svg>
       </button>
-      <button class="icon-btn" id="historyBtn" title="Sales History" aria-label="Sales History">
-        <svg viewBox="0 0 48 48" aria-hidden="true">
-          <rect x="8" y="5" width="26" height="32" rx="3" fill="url(#iconMetal)" stroke="#4B5563" stroke-width="1.5" filter="url(#iconLift)"/>
-          <line x1="13" y1="14" x2="29" y2="14" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round"/>
-          <line x1="13" y1="21" x2="29" y2="21" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round"/>
-          <line x1="13" y1="28" x2="23" y2="28" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round"/>
-          <circle cx="33" cy="33" r="9.5" fill="url(#iconAccent)" stroke="#8A5B1A" stroke-width="1" filter="url(#iconLift)"/>
-          <line x1="33" y1="33" x2="33" y2="28" stroke="#5C3A0E" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="33" y1="33" x2="37" y2="33.5" stroke="#5C3A0E" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <button class="icon-btn" id="analyticsBtn" title="Analytics" aria-label="Analytics">
+      <button class="icon-btn" id="analyticsBtn" title="History" aria-label="History">
         <svg viewBox="0 0 48 48" aria-hidden="true">
           <rect x="7" y="8" width="34" height="32" rx="3" fill="none" stroke="url(#iconMetal)" stroke-width="2.4" filter="url(#iconLift)"/>
           <rect x="12" y="26" width="6.5" height="9" rx="1.5" fill="url(#iconMetal)"/>
@@ -922,7 +911,7 @@
      when a day/month/year is "closed", independent of any cloud sync). */
   var autoCloseState = { lastCheckedKey: null, closedDays: {}, closedMonths: {}, closedYears: {} };
   var pendingReports = []; // [{id, type:'day'|'month'|'year', key, label, createdAt}]
-  var APP_LAST_UPDATED = "October 15, 2026";
+  var APP_LAST_UPDATED = "November 20, 2026";
 
   var SERVICES = [
     {key:"plug", label:"Plug"},
@@ -2538,7 +2527,7 @@
       '<div class="m-field"><label>Closing Report Email</label>' +
         '<input type="email" id="setReportEmail" placeholder="owner@example.com" value="' + escapeHtml(settings.reportEmail || '') + '">' +
       '</div>' +
-      '<p class="desc">Daily, monthly, and year-end closing reports are prepared automatically as a PDF and readied here for this address — you\'ll get a one-tap reminder to send them from your iPad\'s Mail app. You can also tap Send Today\'s Sales directly from Sales History &rarr; Day once that day is closed.</p>' +
+      '<p class="desc">Daily, monthly, and year-end closing reports are prepared automatically as a PDF and readied here for this address — you\'ll get a one-tap reminder to send them from your iPad\'s Mail app. You can also tap Send Today\'s Sales directly from History &rarr; Sales List (Day) once that day is closed.</p>' +
       '<div class="settings-divider"></div>' +
       '<h3 class="settings-subhead">Techs</h3>' +
       '<p class="desc">Add the techs who can be credited when a tip comes in. Removing a tech only stops them from being picked for new tips — past tips keep their name.</p>' +
@@ -3087,7 +3076,7 @@
 
     openModal(
       '<h3>Find &amp; Refund a Sale</h3>' +
-      '<p class="desc">Search past transactions by date range and item, then refund all or part of a sale — refunds are logged in Sales History like any other transaction. A same-day sale that hasn\'t been refunded yet can instead be Voided, which removes it entirely with no record kept; once its day is closed, only Refund is available.</p>' +
+      '<p class="desc">Search past transactions by date range and item, then refund all or part of a sale — refunds are logged in History like any other transaction. A same-day sale that hasn\'t been refunded yet can instead be Voided, which removes it entirely with no record kept; once its day is closed, only Refund is available.</p>' +
       '<div class="refund-search-row">' +
         '<div class="m-field"><label>From</label><input type="date" id="refFrom" value="' + fromDefault + '"></div>' +
         '<div class="m-field"><label>To</label><input type="date" id="refTo" value="' + todayKey + '"></div>' +
@@ -4105,235 +4094,6 @@
     });
   }
 
-  function openHistoryModal(){
-    // Read from this iPad's local log — it's always complete (every sale is
-    // written here first), so history works the same whether or not the
-    // cloud db is available this session.
-    var todayKey = dateKeyFor(new Date());
-    var mode = 'day'; // 'day' | 'month' | 'year'
-
-    openModal(
-      '<h3>Sales History</h3>' +
-      '<p class="desc">Totals for closing out the register — by day (or a range of days), month, or year. Saved on this iPad' +
-        (db ? ' and synced to the cloud.' : '.') +
-      '</p>' +
-      '<div class="hist-mode-tabs">' +
-        '<button class="hist-mode-tab active" data-mode="day">Day</button>' +
-        '<button class="hist-mode-tab" data-mode="month">Month</button>' +
-        '<button class="hist-mode-tab" data-mode="year">Year</button>' +
-      '</div>' +
-      '<div class="refund-search-row" id="histPickerRow">' +
-        '<div class="m-field" id="histPickerField">' +
-          '<label id="histPickerLabel">From</label>' +
-          '<input type="date" id="histPicker" value="' + todayKey + '">' +
-        '</div>' +
-        '<div class="m-field" id="histPickerToField">' +
-          '<label>To</label>' +
-          '<input type="date" id="histPickerTo" value="' + todayKey + '">' +
-        '</div>' +
-      '</div>' +
-      '<div class="m-field"><label>Search</label>' +
-        '<input type="text" id="histSearch" placeholder="e.g. 225/40/18, Mount, cash, card, customer name" autocomplete="off">' +
-      '</div>' +
-      '<div id="closeDayRow"></div>' +
-      '<div id="histContent"></div>' +
-      '<div class="modal-actions"><button class="m-btn-cancel" id="histClose">Close</button></div>',
-      'wide'
-    );
-    document.getElementById('histClose').addEventListener('click', closeModal);
-
-    function renderCloseDayRow(pickerVal){
-      var row = document.getElementById('closeDayRow');
-      if(!row) return;
-      if(mode !== 'day'){ row.innerHTML = ''; return; }
-
-      var isClosed = !!autoCloseState.closedDays[pickerVal];
-      // A day can close either by the tech tapping the button below or on
-      // its own at 11:59pm (see checkAutoCloseTonight) — so with nothing
-      // else on screen saying so, an open day just looks like a day where
-      // the button hasn't been pressed yet. Spell out the state plainly
-      // instead of leaving it to be inferred from which buttons happen to
-      // be showing.
-      var badge = isClosed
-        ? '<span class="day-status-badge closed">&#10003; Day Closed</span>'
-        : '<span class="day-status-badge open">Day Open</span>';
-      var pieces = [];
-      if(pickerVal === todayKey && !isClosed){
-        pieces.push('<button type="button" class="btn-close-day" id="closeDayBtn">Close Today’s Day Now</button>');
-      }
-      if(isClosed){
-        pieces.push('<button type="button" class="btn-close-day btn-email-day" id="emailDayBtn">Send Today&rsquo;s Sales</button>');
-      }
-      row.innerHTML = '<div class="close-day-row"><span class="day-status-wrap">' + badge + '</span>' + pieces.join('') + '</div>';
-
-      var closeBtn = document.getElementById('closeDayBtn');
-      if(closeBtn){
-        closeBtn.addEventListener('click', function(){
-          closeDayIfNeeded(todayKey);
-          saveAutoCloseState();
-          savePendingReports();
-          showToast('Day closed — report ready to send');
-          renderCloseDayRow(pickerVal);
-          load();
-          printDayClosing(todayKey);
-        });
-      }
-      var emailBtn = document.getElementById('emailDayBtn');
-      if(emailBtn){
-        emailBtn.addEventListener('click', function(){
-          emailDayReport(pickerVal);
-          renderCloseDayRow(pickerVal);
-        });
-      }
-    }
-
-    // Filters a period's sales by the free-text search box — matches item
-    // text (a tire size no matter how it's typed, a service name), payment
-    // method, or a deposit's customer name/phone, same matching approach as
-    // the Find & Refund a Sale search.
-    function filterBySearch(list){
-      var q = (document.getElementById('histSearch').value || '').trim().toLowerCase();
-      if(!q) return list;
-      var qDigits = digitsOnly(q);
-      return list.filter(function(s){
-        var itemText = s.items.map(function(li){ return li.desc.toLowerCase(); }).join(' ');
-        var haystack = itemText + ' ' + paymentMethodLabel(s).toLowerCase() + ' ' +
-          (s.customerName || '').toLowerCase() + ' ' + (s.customerPhone || '').toLowerCase() + ' ' + (s.depositNote || '').toLowerCase();
-        var keywordMatch = haystack.indexOf(q) !== -1;
-        var sizeMatch = qDigits && digitsOnly(haystack).indexOf(qDigits) !== -1;
-        return keywordMatch || sizeMatch;
-      });
-    }
-
-    function load(){
-      var content = document.getElementById('histContent');
-      var pickerVal = document.getElementById('histPicker').value;
-      if(!pickerVal) return;
-      // Day mode can span a range: "To" left blank (or equal to "From")
-      // means a single day, exactly as before. A reversed range is read
-      // in the right order rather than showing nothing.
-      var rangeFrom = pickerVal, rangeTo = pickerVal;
-      if(mode === 'day'){
-        var toRaw = document.getElementById('histPickerTo').value;
-        if(toRaw){ rangeTo = toRaw; }
-        if(rangeTo < rangeFrom){ var swap = rangeFrom; rangeFrom = rangeTo; rangeTo = swap; }
-      }
-      var isRange = (mode === 'day' && rangeFrom !== rangeTo);
-      if(isRange){
-        // Closing/sending a day only makes sense for one day at a time.
-        var cdRow = document.getElementById('closeDayRow');
-        if(cdRow) cdRow.innerHTML = '';
-      } else {
-        renderCloseDayRow(rangeFrom);
-      }
-
-      if(isRange){
-        var rangeSales = filterBySearch(localSalesLog.filter(function(s){ return s.dateKey >= rangeFrom && s.dateKey <= rangeTo; }));
-        renderGroupedHistory(content, rangeSales, {
-          emptyMsg: 'No sales match this date range.',
-          periodLabel: 'Date',
-          groupKey: function(s){ return s.dateKey; },
-          formatKey: function(key){
-            var d = new Date(key + 'T00:00:00');
-            return d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric', year:'numeric'});
-          },
-          onRowClick: function(key){
-            setMode('day', key);
-          }
-        });
-      } else if(mode === 'day'){
-        var sales = filterBySearch(localSalesLog.filter(function(s){ return s.dateKey === rangeFrom; }));
-        // isSaleEditableToday only ever offers Edit on a sale whose dateKey
-        // is today, so this row only appears while we're already viewing
-        // today's day — reopening Sales History fresh after Edit lands back
-        // on the same view (Day / today) rather than needing to restore
-        // exact picker/search state from a modal that's already gone.
-        renderHistory(content, sales, function(sale){
-          openEditSaleModal(sale, function(){ openHistoryModal(); });
-        });
-      } else if(mode === 'month'){
-        // pickerVal is "YYYY-MM"
-        var sales = filterBySearch(localSalesLog.filter(function(s){ return s.dateKey.slice(0,7) === pickerVal; }));
-        renderGroupedHistory(content, sales, {
-          emptyMsg: 'No sales match this month.',
-          periodLabel: 'Date',
-          groupKey: function(s){ return s.dateKey; },
-          formatKey: function(key){
-            var d = new Date(key + 'T00:00:00');
-            return d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
-          },
-          onRowClick: function(key){
-            setMode('day', key);
-          }
-        });
-      } else if(mode === 'year'){
-        // pickerVal is "YYYY"
-        var sales = filterBySearch(localSalesLog.filter(function(s){ return s.dateKey.slice(0,4) === pickerVal; }));
-        renderGroupedHistory(content, sales, {
-          emptyMsg: 'No sales match this year.',
-          periodLabel: 'Month',
-          groupKey: function(s){ return s.dateKey.slice(0,7); },
-          formatKey: function(key){
-            var d = new Date(key + '-01T00:00:00');
-            return d.toLocaleDateString([], {month:'long', year:'numeric'});
-          },
-          onRowClick: function(key){
-            setMode('month', key);
-          }
-        });
-      }
-    }
-
-    function setMode(newMode, pickerVal){
-      mode = newMode;
-      document.querySelectorAll('.hist-mode-tab').forEach(function(btn){
-        btn.classList.toggle('active', btn.getAttribute('data-mode') === newMode);
-      });
-      var picker = document.getElementById('histPicker');
-      var label = document.getElementById('histPickerLabel');
-      var toField = document.getElementById('histPickerToField');
-      var pickerRow = document.getElementById('histPickerRow');
-      toField.style.display = (newMode === 'day') ? '' : 'none';
-      pickerRow.style.gridTemplateColumns = (newMode === 'day') ? '' : '1fr';
-      if(newMode === 'day'){
-        label.textContent = 'From';
-        picker.type = 'date';
-        picker.value = pickerVal || dateKeyFor(new Date());
-        document.getElementById('histPickerTo').value = picker.value;
-      } else if(newMode === 'month'){
-        label.textContent = 'Month';
-        picker.type = 'month';
-        picker.value = pickerVal || todayKey.slice(0,7);
-      } else if(newMode === 'year'){
-        label.textContent = 'Year';
-        picker.type = 'number';
-        picker.min = '2000'; picker.max = '2100'; picker.step = '1';
-        picker.value = pickerVal || todayKey.slice(0,4);
-      }
-      load();
-    }
-
-    document.querySelectorAll('.hist-mode-tab').forEach(function(btn){
-      btn.addEventListener('click', function(){ setMode(btn.getAttribute('data-mode')); });
-    });
-    // Keep the two dates sensible: moving "From" past "To" drags "To"
-    // along, and picking a "To" before "From" pulls "From" back to it.
-    document.getElementById('histPicker').addEventListener('change', function(){
-      var fromEl = document.getElementById('histPicker');
-      var toEl = document.getElementById('histPickerTo');
-      if(mode === 'day' && fromEl.value && (!toEl.value || toEl.value < fromEl.value)){ toEl.value = fromEl.value; }
-      load();
-    });
-    document.getElementById('histPickerTo').addEventListener('change', function(){
-      var fromEl = document.getElementById('histPicker');
-      var toEl = document.getElementById('histPickerTo');
-      if(mode === 'day' && toEl.value && fromEl.value && toEl.value < fromEl.value){ fromEl.value = toEl.value; }
-      load();
-    });
-    document.getElementById('histSearch').addEventListener('input', load);
-    load();
-  }
-
   /* ===================== Analytics ===================== */
   // Classifies one sale line item's description into either a tire-size
   // bucket or a service bucket, so the Analytics tab can roll up counts and
@@ -4498,17 +4258,27 @@
     return Object.keys(map).map(function(k){ return map[k]; });
   }
 
-  function openAnalyticsModal(){
+  /* One combined screen for everything about past sales: the list of
+     individual sales (with Edit / Close Day), the by-service and tire-size
+     Breakdown with the Sales Tax Summary, and Tips — all for the same
+     Day (or range of days) / Month / Year the person picks. It only reads
+     from the saved sales log; nothing stored changes by looking here. */
+  function openHistoryModal(){
+    // Read from this iPad's local log — it's always complete (every sale is
+    // written here first), so history works the same whether or not the
+    // cloud db is available this session.
     var todayKey = dateKeyFor(new Date());
-    var mode = 'day'; // 'day' | 'month' | 'year'
-    var view = 'sales'; // 'sales' | 'tips'
-    var searchTerm = '';
+    var mode = 'day';   // 'day' | 'month' | 'year'
+    var view = 'list';  // 'list' | 'breakdown' | 'tips'
 
     openModal(
-      '<h3>Analytics</h3>' +
-      '<p class="desc">Counts and sale totals by service and tire size, or tips by tech, for the day, month, or year you pick. Search to jump straight to one. The Sales view also has a Sales Tax Summary you can email as a PDF.</p>' +
+      '<h3>History</h3>' +
+      '<p class="desc">Every sale, plus totals by service and tire size, tips by tech, and your Sales Tax Summary — for a day (or a range of days), a month, or a year. Saved on this iPad' +
+        (db ? ' and synced to the cloud.' : '.') +
+      '</p>' +
       '<div class="an-view-tabs">' +
-        '<button class="an-view-tab active" data-view="sales">Sales</button>' +
+        '<button class="an-view-tab active" data-view="list">Sales List</button>' +
+        '<button class="an-view-tab" data-view="breakdown">Breakdown</button>' +
         '<button class="an-view-tab" data-view="tips">Tips</button>' +
       '</div>' +
       '<div class="hist-mode-tabs">' +
@@ -4516,26 +4286,162 @@
         '<button class="hist-mode-tab" data-mode="month">Month</button>' +
         '<button class="hist-mode-tab" data-mode="year">Year</button>' +
       '</div>' +
-      '<div class="m-field" id="anPickerField">' +
-        '<label id="anPickerLabel">Date</label>' +
-        '<input type="date" id="anPicker" value="' + todayKey + '">' +
+      '<div class="refund-search-row" id="histPickerRow">' +
+        '<div class="m-field" id="histPickerField">' +
+          '<label id="histPickerLabel">From</label>' +
+          '<input type="date" id="histPicker" value="' + todayKey + '">' +
+        '</div>' +
+        '<div class="m-field" id="histPickerToField">' +
+          '<label>To</label>' +
+          '<input type="date" id="histPickerTo" value="' + todayKey + '">' +
+        '</div>' +
       '</div>' +
-      '<div class="m-field">' +
-        '<label id="anSearchLabel">Search Service or Tire Size</label>' +
-        '<input type="text" id="anSearch" placeholder="e.g. Rotation, 225/40/18" autocomplete="off">' +
+      '<div class="m-field"><label id="histSearchLabel">Search</label>' +
+        '<input type="text" id="histSearch" placeholder="e.g. 225/40/18, Mount, cash, card, customer name" autocomplete="off">' +
       '</div>' +
-      '<div id="anContent"></div>' +
-      '<div class="modal-actions"><button class="m-btn-cancel" id="anClose">Close</button></div>',
+      '<div id="closeDayRow"></div>' +
+      '<div id="histContent"></div>' +
+      '<div class="modal-actions"><button class="m-btn-cancel" id="histClose">Close</button></div>',
       'wide'
     );
-    document.getElementById('anClose').addEventListener('click', closeModal);
+    document.getElementById('histClose').addEventListener('click', closeModal);
 
-    function renderSalesView(sales, totals){
+    function getSearch(){ return (document.getElementById('histSearch').value || '').trim(); }
+
+    // The period currently picked. In Day mode "To" left blank (or equal to
+    // "From") means a single day; a reversed range is read in the right
+    // order rather than showing nothing.
+    function getPeriod(){
+      var pickerVal = document.getElementById('histPicker').value;
+      if(!pickerVal) return null;
+      var from = pickerVal, to = pickerVal, sales;
+      if(mode === 'day'){
+        var toRaw = document.getElementById('histPickerTo').value;
+        if(toRaw){ to = toRaw; }
+        if(to < from){ var swap = from; from = to; to = swap; }
+        sales = localSalesLog.filter(function(s){ return s.dateKey >= from && s.dateKey <= to; });
+      } else {
+        sales = salesForPeriod(mode, pickerVal);
+      }
+      return { from: from, to: to, isRange: (mode === 'day' && from !== to), sales: sales };
+    }
+
+    function renderCloseDayRow(pickerVal){
+      var row = document.getElementById('closeDayRow');
+      if(!row) return;
+      if(mode !== 'day'){ row.innerHTML = ''; return; }
+
+      var isClosed = !!autoCloseState.closedDays[pickerVal];
+      // A day can close either by the tech tapping the button below or on
+      // its own at 11:59pm (see checkAutoCloseTonight) — so with nothing
+      // else on screen saying so, an open day just looks like a day where
+      // the button hasn't been pressed yet. Spell out the state plainly
+      // instead of leaving it to be inferred from which buttons happen to
+      // be showing.
+      var badge = isClosed
+        ? '<span class="day-status-badge closed">&#10003; Day Closed</span>'
+        : '<span class="day-status-badge open">Day Open</span>';
+      var pieces = [];
+      if(pickerVal === todayKey && !isClosed){
+        pieces.push('<button type="button" class="btn-close-day" id="closeDayBtn">Close Today’s Day Now</button>');
+      }
+      if(isClosed){
+        pieces.push('<button type="button" class="btn-close-day btn-email-day" id="emailDayBtn">Send Today&rsquo;s Sales</button>');
+      }
+      row.innerHTML = '<div class="close-day-row"><span class="day-status-wrap">' + badge + '</span>' + pieces.join('') + '</div>';
+
+      var closeBtn = document.getElementById('closeDayBtn');
+      if(closeBtn){
+        closeBtn.addEventListener('click', function(){
+          closeDayIfNeeded(todayKey);
+          saveAutoCloseState();
+          savePendingReports();
+          showToast('Day closed — report ready to send');
+          renderCloseDayRow(pickerVal);
+          load();
+          printDayClosing(todayKey);
+        });
+      }
+      var emailBtn = document.getElementById('emailDayBtn');
+      if(emailBtn){
+        emailBtn.addEventListener('click', function(){
+          emailDayReport(pickerVal);
+          renderCloseDayRow(pickerVal);
+        });
+      }
+    }
+
+    // Sales List search — matches item text (a tire size no matter how it's
+    // typed, a service name), payment method, or a deposit's customer
+    // name/phone, same matching approach as the Find & Refund a Sale search.
+    function filterBySearch(list){
+      var q = getSearch().toLowerCase();
+      if(!q) return list;
+      var qDigits = digitsOnly(q);
+      return list.filter(function(s){
+        var itemText = s.items.map(function(li){ return li.desc.toLowerCase(); }).join(' ');
+        var haystack = itemText + ' ' + paymentMethodLabel(s).toLowerCase() + ' ' +
+          (s.customerName || '').toLowerCase() + ' ' + (s.customerPhone || '').toLowerCase() + ' ' + (s.depositNote || '').toLowerCase();
+        var keywordMatch = haystack.indexOf(q) !== -1;
+        var sizeMatch = qDigits && digitsOnly(haystack).indexOf(qDigits) !== -1;
+        return keywordMatch || sizeMatch;
+      });
+    }
+
+    function renderListView(content, p){
+      var sales = filterBySearch(p.sales);
+      if(p.isRange){
+        renderGroupedHistory(content, sales, {
+          emptyMsg: 'No sales match this date range.',
+          periodLabel: 'Date',
+          groupKey: function(s){ return s.dateKey; },
+          formatKey: function(key){
+            var d = new Date(key + 'T00:00:00');
+            return d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+          },
+          onRowClick: function(key){ setMode('day', key); }
+        });
+      } else if(mode === 'day'){
+        // isSaleEditableToday only ever offers Edit on a sale whose dateKey
+        // is today, so this row only appears while we're already viewing
+        // today's day — reopening History fresh after Edit lands back on
+        // the same view (Day / today) rather than needing to restore exact
+        // picker/search state from a modal that's already gone.
+        renderHistory(content, sales, function(sale){
+          openEditSaleModal(sale, function(){ openHistoryModal(); });
+        });
+      } else if(mode === 'month'){
+        renderGroupedHistory(content, sales, {
+          emptyMsg: 'No sales match this month.',
+          periodLabel: 'Date',
+          groupKey: function(s){ return s.dateKey; },
+          formatKey: function(key){
+            var d = new Date(key + 'T00:00:00');
+            return d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+          },
+          onRowClick: function(key){ setMode('day', key); }
+        });
+      } else {
+        renderGroupedHistory(content, sales, {
+          emptyMsg: 'No sales match this year.',
+          periodLabel: 'Month',
+          groupKey: function(s){ return s.dateKey.slice(0,7); },
+          formatKey: function(key){
+            var d = new Date(key + '-01T00:00:00');
+            return d.toLocaleDateString([], {month:'long', year:'numeric'});
+          },
+          onRowClick: function(key){ setMode('month', key); }
+        });
+      }
+    }
+
+    function renderBreakdownView(sales, totals, canSendTaxReport){
+      var searchTerm = getSearch();
       var rows = buildAnalyticsRows(sales);
 
-      if(searchTerm.trim()){
+      if(searchTerm){
         var termDigits = digitsOnly(searchTerm);
-        var termLower = searchTerm.trim().toLowerCase();
+        var termLower = searchTerm.toLowerCase();
         rows = rows.filter(function(r){
           var labelLower = r.label.toLowerCase();
           var keywordMatch = labelLower.indexOf(termLower) !== -1;
@@ -4548,7 +4454,7 @@
       var tableHtml;
       if(rows.length === 0){
         tableHtml = '<p class="desc">' +
-          (searchTerm.trim()
+          (searchTerm
             ? 'Nothing matches &ldquo;' + escapeHtml(searchTerm) + '&rdquo; for this period.'
             : 'No services or tire sales recorded for this period yet.') +
           '</p>';
@@ -4587,18 +4493,21 @@
             '<div class="hist-stat total"><span class="hs-label">Labor</span><span class="hs-val">' + money(taxT.labor) + '</span></div>' +
             (totals.refundCount > 0 ? '<div class="hist-stat refund"><span class="hs-label">Refunds (not netted above in the item table)</span><span class="hs-val">' + totals.refundCount + ' &middot; ' + money(totals.refundTotal) + '</span></div>' : '') +
           '</div>' +
-          '<p class="desc">For your monthly state sales tax filing — pick Month above for the period you\'re reporting.</p>' +
-          '<button type="button" class="btn-close-day btn-email-day an-send-tax-btn" id="anSendTaxReportBtn">Send Sales Tax Report</button>'
+          (canSendTaxReport
+            ? '<p class="desc">For your monthly state sales tax filing — pick Month above for the period you\'re reporting.</p>' +
+              '<button type="button" class="btn-close-day btn-email-day an-send-tax-btn" id="anSendTaxReportBtn">Send Sales Tax Report</button>'
+            : '<p class="desc">To email a Sales Tax Report, pick a single day, a month, or a year above.</p>')
         : '';
 
       return tableHtml + summaryHtml;
     }
 
     function renderTipsView(sales){
+      var searchTerm = getSearch();
       var rows = buildTipRows(sales);
 
-      if(searchTerm.trim()){
-        var termLower = searchTerm.trim().toLowerCase();
+      if(searchTerm){
+        var termLower = searchTerm.toLowerCase();
         rows = rows.filter(function(r){ return r.label.toLowerCase().indexOf(termLower) !== -1; });
       }
       rows.sort(function(a,b){ return b.total - a.total; });
@@ -4606,7 +4515,7 @@
       var tableHtml;
       if(rows.length === 0){
         tableHtml = '<p class="desc">' +
-          (searchTerm.trim()
+          (searchTerm
             ? 'Nothing matches &ldquo;' + escapeHtml(searchTerm) + '&rdquo; for this period.'
             : 'No tips recorded for this period yet.') +
           '</p>';
@@ -4638,46 +4547,60 @@
       return tableHtml + summaryHtml;
     }
 
-    function render(){
-      var content = document.getElementById('anContent');
-      var pickerVal = document.getElementById('anPicker').value;
-      if(!pickerVal) return;
+    function load(){
+      var p = getPeriod();
+      if(!p) return;
+      var content = document.getElementById('histContent');
 
-      var sales = salesForPeriod(mode, pickerVal);
-      var totals = computeTotals(sales);
+      // Closing/sending a day only makes sense on the Sales List, for one day.
+      if(view === 'list' && !p.isRange){
+        renderCloseDayRow(p.from);
+      } else {
+        document.getElementById('closeDayRow').innerHTML = '';
+      }
 
-      content.innerHTML = view === 'tips' ? renderTipsView(sales) : renderSalesView(sales, totals);
-
-      var sendTaxBtn = document.getElementById('anSendTaxReportBtn');
-      if(sendTaxBtn){
-        sendTaxBtn.addEventListener('click', function(){
-          emailTaxReport(mode, pickerVal);
-        });
+      if(view === 'tips'){
+        content.innerHTML = renderTipsView(p.sales);
+      } else if(view === 'breakdown'){
+        content.innerHTML = renderBreakdownView(p.sales, computeTotals(p.sales), !p.isRange);
+        var sendTaxBtn = document.getElementById('anSendTaxReportBtn');
+        if(sendTaxBtn){
+          sendTaxBtn.addEventListener('click', function(){
+            emailTaxReport(mode, p.from);
+          });
+        }
+      } else {
+        renderListView(content, p);
       }
     }
 
-    function setMode(newMode){
+    function setMode(newMode, pickerVal){
       mode = newMode;
       document.querySelectorAll('.hist-mode-tab').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-mode') === newMode);
       });
-      var picker = document.getElementById('anPicker');
-      var label = document.getElementById('anPickerLabel');
+      var picker = document.getElementById('histPicker');
+      var label = document.getElementById('histPickerLabel');
+      var toField = document.getElementById('histPickerToField');
+      var pickerRow = document.getElementById('histPickerRow');
+      toField.style.display = (newMode === 'day') ? '' : 'none';
+      pickerRow.style.gridTemplateColumns = (newMode === 'day') ? '' : '1fr';
       if(newMode === 'day'){
-        label.textContent = 'Date';
+        label.textContent = 'From';
         picker.type = 'date';
-        picker.value = todayKey;
+        picker.value = pickerVal || dateKeyFor(new Date());
+        document.getElementById('histPickerTo').value = picker.value;
       } else if(newMode === 'month'){
         label.textContent = 'Month';
         picker.type = 'month';
-        picker.value = todayKey.slice(0,7);
+        picker.value = pickerVal || todayKey.slice(0,7);
       } else if(newMode === 'year'){
         label.textContent = 'Year';
         picker.type = 'number';
         picker.min = '2000'; picker.max = '2100'; picker.step = '1';
-        picker.value = todayKey.slice(0,4);
+        picker.value = pickerVal || todayKey.slice(0,4);
       }
-      render();
+      load();
     }
 
     function setView(newView){
@@ -4685,18 +4608,20 @@
       document.querySelectorAll('.an-view-tab').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-view') === newView);
       });
-      var searchInput = document.getElementById('anSearch');
-      var searchLabel = document.getElementById('anSearchLabel');
+      var searchInput = document.getElementById('histSearch');
+      var searchLabel = document.getElementById('histSearchLabel');
       searchInput.value = '';
-      searchTerm = '';
       if(newView === 'tips'){
         searchLabel.textContent = 'Search Tech';
         searchInput.placeholder = 'e.g. Miguel';
-      } else {
+      } else if(newView === 'breakdown'){
         searchLabel.textContent = 'Search Service or Tire Size';
         searchInput.placeholder = 'e.g. Rotation, 225/40/18';
+      } else {
+        searchLabel.textContent = 'Search';
+        searchInput.placeholder = 'e.g. 225/40/18, Mount, cash, card, customer name';
       }
-      render();
+      load();
     }
 
     document.querySelectorAll('.hist-mode-tab').forEach(function(btn){
@@ -4705,13 +4630,22 @@
     document.querySelectorAll('.an-view-tab').forEach(function(btn){
       btn.addEventListener('click', function(){ setView(btn.getAttribute('data-view')); });
     });
-    document.getElementById('anPicker').addEventListener('change', render);
-    document.getElementById('anSearch').addEventListener('input', function(){
-      searchTerm = this.value;
-      render();
+    // Keep the two dates sensible: moving "From" past "To" drags "To"
+    // along, and picking a "To" before "From" pulls "From" back to it.
+    document.getElementById('histPicker').addEventListener('change', function(){
+      var fromEl = document.getElementById('histPicker');
+      var toEl = document.getElementById('histPickerTo');
+      if(mode === 'day' && fromEl.value && (!toEl.value || toEl.value < fromEl.value)){ toEl.value = fromEl.value; }
+      load();
     });
-
-    render();
+    document.getElementById('histPickerTo').addEventListener('change', function(){
+      var fromEl = document.getElementById('histPicker');
+      var toEl = document.getElementById('histPickerTo');
+      if(mode === 'day' && toEl.value && fromEl.value && toEl.value < fromEl.value){ fromEl.value = toEl.value; }
+      load();
+    });
+    document.getElementById('histSearch').addEventListener('input', load);
+    load();
   }
 
   /* ===================== Layout resizer ===================== */
@@ -4795,8 +4729,7 @@
   });
   document.getElementById('settingsBtn').addEventListener('click', function(){ openPinModal(openSettingsModal); });
   document.getElementById('inventoryBtn').addEventListener('click', openInventoryModal);
-  document.getElementById('historyBtn').addEventListener('click', openHistoryModal);
-  document.getElementById('analyticsBtn').addEventListener('click', openAnalyticsModal);
+  document.getElementById('analyticsBtn').addEventListener('click', openHistoryModal);
   document.getElementById('refundsBtn').addEventListener('click', openRefundModal);
   document.getElementById('reportsBtn').addEventListener('click', openReportsModal);
   document.getElementById('depositsBtn').addEventListener('click', openDepositsModal);
