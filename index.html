@@ -834,12 +834,6 @@
         <div class="svc-grid" id="svcGrid"></div>
       </section>
 
-      <section class="block">
-        <h2>Today's Summary</h2>
-        <p class="sub">Updates live as sales are completed and refunds are granted.</p>
-        <div class="hist-summary" id="todaySummary"></div>
-      </section>
-
     </main>
 
     <div class="layout-resizer" id="layoutResizer" role="separator" aria-orientation="vertical" aria-label="Resize Tires/Services and Current Sale panels" tabindex="0" title="Drag to resize"></div>
@@ -1422,6 +1416,55 @@
         pendingReports.push({ id: 'rpt' + Date.now() + Math.random().toString(36).slice(2,7) + 'y', type:'year', key: yearKey, label: periodLabel('year', yearKey), createdAt: new Date().toISOString() });
       }
     }
+  }
+
+  /* A closed day is finished: its report has been (or is about to be) sent,
+     so a new sale slipping in afterwards would leave that report short.
+     New sales and deposits are blocked once today is closed. If it was
+     closed by mistake, Reopen Today undoes the close — the day's pending
+     closing report is withdrawn (it's regenerated when the day is closed
+     again) and sales work again. Refunds are not blocked. */
+  function isTodayClosed(){
+    return !!autoCloseState.closedDays[dateKeyFor(new Date())];
+  }
+  function reopenToday(){
+    var dayKey = dateKeyFor(new Date());
+    delete autoCloseState.closedDays[dayKey];
+    pendingReports = pendingReports.filter(function(r){ return !(r.type === 'day' && r.key === dayKey); });
+
+    var monthKey = dayKey.slice(0,7);
+    if(dayKeyPlus(dayKey, 1).slice(0,7) !== monthKey){
+      delete autoCloseState.closedMonths[monthKey];
+      pendingReports = pendingReports.filter(function(r){ return !(r.type === 'month' && r.key === monthKey); });
+    }
+    var yearKey = dayKey.slice(0,4);
+    if(dayKey.slice(5) === '12-31'){
+      delete autoCloseState.closedYears[yearKey];
+      pendingReports = pendingReports.filter(function(r){ return !(r.type === 'year' && r.key === yearKey); });
+    }
+    saveAutoCloseState();
+    savePendingReports();
+  }
+  // Returns true (after telling the person why) when today is closed and
+  // the sale/deposit they're attempting must not go through.
+  function blockIfTodayClosed(){
+    if(!isTodayClosed()) return false;
+    openModal(
+      '<h3>Today Is Closed</h3>' +
+      '<p class="desc">You already closed today\'s day, so new sales can\'t be added. If you closed it by mistake, tap Reopen Today — sales will work again, and the day closes again when you close it or at 11:59 pm.</p>' +
+      '<div class="modal-actions">' +
+        '<button class="m-btn-cancel" id="dcOk">OK</button>' +
+        '<button class="m-btn-confirm" id="dcReopen">Reopen Today</button>' +
+      '</div>'
+    );
+    document.getElementById('dcOk').addEventListener('click', closeModal);
+    document.getElementById('dcReopen').addEventListener('click', function(){
+      reopenToday();
+      closeModal();
+      renderAll();
+      showToast('Today reopened — you can ring up sales again');
+    });
+    return true;
   }
 
   // Fires (from a short-interval timer, only while the app happens to be
@@ -2198,7 +2241,10 @@
     document.getElementById('notFoundBanner').innerHTML = '';
 
     var item = inventory.filter(function(i){ return i.size === size; })[0];
-    var prefillTotal = item && item.lastTotal ? item.lastTotal : '';
+    // The Total box always starts blank — a size's previous total is still
+    // shown as a hint on its button, but never filled in for the next sale,
+    // since each sale is priced fresh.
+    var prefillTotal = '';
 
     var slot = document.getElementById('addPanelSlot');
     slot.innerHTML =
@@ -2209,8 +2255,8 @@
           '<div class="ap-field">' +
             '<label>Condition</label>' +
             '<div class="segmented" id="apCondition">' +
-              '<button type="button" class="seg-btn active" data-val="New">New</button>' +
-              '<button type="button" class="seg-btn" data-val="Used">Used</button>' +
+              '<button type="button" class="seg-btn" data-val="New">New</button>' +
+              '<button type="button" class="seg-btn active used-active" data-val="Used">Used</button>' +
             '</div>' +
           '</div>' +
           '<div class="ap-field">' +
@@ -2245,7 +2291,7 @@
         '<button class="btn-primary-lg" id="apAddBtn">Add to Sale</button>' +
       '</div>';
 
-    var condition = 'New';
+    var condition = 'Used'; // the shop mostly sells used tires, so Used is the starting choice
     var qty = 1;
 
     // Total and Labor are the whole amount for the quantity entered — divide
@@ -2877,6 +2923,7 @@
   // and asks whether to print a customer copy before printing. splitInfo
   // is only passed for method 'split'.
   function finalizeSale(method, splitInfo){
+    if(blockIfTodayClosed()) return;
     var totals = computeSaleTotals(lineItems);
     var sale = recordSale(method, lineItems, totals, null, splitInfo);
     applyDepositConsumption(sale);
@@ -2929,6 +2976,7 @@
   }
 
   function completeSale(method){
+    if(blockIfTodayClosed()) return;
     if(lineItems.length === 0){ showToast('Nothing to complete yet.'); return; }
     var totals = computeSaleTotals(lineItems);
     if(totals.total <= 0.004){ showToast('Total must be greater than $0 to complete this sale.'); return; }
@@ -2955,6 +3003,7 @@
   // Cash/Card buttons already showing a pre-computed total rather than
   // asking the tech to do fee math themselves.
   function openSplitPaymentModal(){
+    if(blockIfTodayClosed()) return;
     if(lineItems.length === 0){ showToast('Nothing to complete yet.'); return; }
     var totals = computeSaleTotals(lineItems);
     if(totals.total <= 0.004){ showToast('Total must be greater than $0 to complete this sale.'); return; }
@@ -3773,6 +3822,7 @@
       var amount = parseFloat(document.getElementById('depAmount').value);
       if(!name){ showToast('Enter the customer\'s name.'); return; }
       if(isNaN(amount) || amount <= 0){ showToast('Enter a valid deposit amount.'); return; }
+      if(blockIfTodayClosed()) return;
 
       var items = [{ id: uid('li'), desc: 'Deposit' + (note ? ' — ' + note : ''), qty: 1, unitPrice: amount, taxable: false }];
       var totals = computeSaleTotals(items);
@@ -4346,6 +4396,9 @@
         pieces.push('<button type="button" class="btn-close-day" id="closeDayBtn">Close Today’s Day Now</button>');
       }
       if(isClosed){
+        if(pickerVal === todayKey){
+          pieces.push('<button type="button" class="btn-close-day" id="reopenDayBtn">Reopen Today</button>');
+        }
         pieces.push('<button type="button" class="btn-close-day btn-email-day" id="emailDayBtn">Send Today&rsquo;s Sales</button>');
       }
       row.innerHTML = '<div class="close-day-row"><span class="day-status-wrap">' + badge + '</span>' + pieces.join('') + '</div>';
@@ -4360,6 +4413,15 @@
           renderCloseDayRow(pickerVal);
           load();
           printDayClosing(todayKey);
+        });
+      }
+      var reopenBtn = document.getElementById('reopenDayBtn');
+      if(reopenBtn){
+        reopenBtn.addEventListener('click', function(){
+          reopenToday();
+          showToast('Today reopened — you can ring up sales again');
+          renderCloseDayRow(pickerVal);
+          load();
         });
       }
       var emailBtn = document.getElementById('emailDayBtn');
